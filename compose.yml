@@ -1,9 +1,9 @@
 services:
   console:
-    image: sca:latest
+    image: sga:latest
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sca
+    container_name: sga
     ports:
       - "50019:8080"

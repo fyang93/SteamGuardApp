@@ -1,0 +1,162 @@
+﻿@page "/"
+
+@using SteamAuth
+@using System.ComponentModel
+@using System.Text.Json
+
+@inject ILogger<Home> Logger
+@inject IWebHostEnvironment Environment
+@inject ProtectedLocalStorage ProtectedLocalStore
+
+<PageTitle>Steam确认工具</PageTitle>
+
+<div class="pe-sm-1 pe-md-2">
+    <div class="accordion" id="accordionPanelsStayOpenExample">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading-account">
+                <button class="accordion-button @(_accounts.Any() ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-account" aria-expanded="@(_accounts.Any() ? "true" : "false")" aria-controls="collapse-account">
+                    账号列表
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                        @_accounts.Count
+                    </span>
+                </button>
+            </h2>
+            <div id="collapse-account" class="accordion-collapse collapse @(_accounts.Any() ? "show" : "")" aria-labelledby="heading-account">
+                <div class="accordion-body">
+                    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xxl-6 g-4">
+                        @if (_accounts.Any())
+                        {
+                            @foreach (var account in _accounts)
+                            {
+                                <div class="col">
+                                    <AccountCard Account="@account" Password="@_secrets.GetValueOrDefault(account.AccountName)" Selected="@(account == _currentAccount)" OnClick="@(() => SetCurrentCard(account))" PasswordChanged="OnPasswordChangedAsync" />
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-danger">暂无账号</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading-upload">
+                <button class="accordion-button @(_accounts.Any() ? "collapsed" : "")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-upload" aria-expanded="@(_accounts.Any() ? "false" : "true")" aria-controls="collapse-upload">
+                    上传令牌
+                </button>
+            </h2>
+            <div id="collapse-upload" class="accordion-collapse collapse @(_accounts.Any() ? "" : "show")" aria-labelledby="heading-upload">
+                <div class="accordion-body">
+                    <Upload AccpetFileExtension=".maFile,.json" OnUploadComplete="@LoadFiles" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [CascadingParameter]
+    public Settings Settings { get; set; }
+
+    private Manifest? _manifest;
+    private List<SteamGuardAccount> _accounts = new();
+    private Dictionary<string, string> _secrets = new();
+    private SteamGuardAccount? _currentAccount;
+
+    protected override void OnInitialized()
+    {
+        Settings.PropertyChanged += OnSettingsChanged;
+    }
+
+    public void Dispose()
+    {
+        Settings.PropertyChanged -= OnSettingsChanged;
+    }
+
+    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(Settings.Username):
+                LoadAccounts();
+                LoadSecrets();
+                break;
+            case nameof(Settings.Passkey):
+                LoadAccounts();
+                break;
+        }
+        InvokeAsync(StateHasChanged);
+
+        ProtectedLocalStore.SetAsync("settings", Settings);
+    }
+
+    private void LoadFiles()
+    {
+        LoadAccounts();
+        LoadSecrets();
+    }
+
+    private void LoadAccounts()
+    {
+        try
+        {
+            var manifestDirectory = Path.Combine(Environment.ContentRootPath, Upload.UploadFolder, Settings.Username);
+            _manifest = new Manifest(manifestDirectory);
+            _manifest.LoadManifest();
+
+            _accounts = _manifest.GetAccounts(Settings.Passkey);
+
+            if (_accounts.Any())
+            {
+                _currentAccount = _accounts.FirstOrDefault();
+            }
+        }
+        catch (Exception)
+        {
+            _manifest = null;
+            _accounts = [];
+        }
+    }
+
+    private void LoadSecrets()
+    {
+        try
+        {
+            var secretsPath = Path.Combine(Environment.ContentRootPath, Upload.UploadFolder, Settings.Username, "secrets.json");
+            var json = File.ReadAllText(secretsPath);
+            var secrets = JsonSerializer.Deserialize<Secrets>(json);
+            if (secrets == null) return;
+
+            _secrets = secrets.AccountSecrets
+                .ToDictionary(
+                    x => x.AccountName,
+                    x => x.Password
+                );
+        }
+        catch (Exception)
+        {
+            _secrets = new();
+        }
+    }
+
+    private void SetCurrentCard(SteamGuardAccount account)
+    {
+        _currentAccount = account;
+    }
+
+    private async Task OnPasswordChangedAsync((string accountName, string newPassword) arg)
+    {
+        _secrets[arg.accountName] = arg.newPassword;
+
+        var secretsPath = Path.Combine(Environment.ContentRootPath, Upload.UploadFolder, Settings.Username, "secrets.json");
+        var secrets = new Secrets
+        {
+            AccountSecrets = _secrets.Select(kv => new Secret { AccountName = kv.Key, Password = kv.Value }).ToList()
+        };
+
+        await File.WriteAllTextAsync(secretsPath, JsonSerializer.Serialize(secrets, new JsonSerializerOptions { WriteIndented = true }));
+    }
+}

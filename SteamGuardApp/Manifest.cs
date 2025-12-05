@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using SteamAuth;
 
-namespace SteamConfirmApp
+namespace SteamGuardApp
 {
     public class Manifest
     {
@@ -41,14 +41,14 @@ namespace SteamConfirmApp
 
             try
             {
-                string manifestContent = File.ReadAllText(manifestPath);
+                var manifestContent = File.ReadAllText(manifestPath);
                 JsonConvert.PopulateObject(manifestContent, this);
 
                 var newEntries = new List<ManifestEntry>();
 
                 foreach (var entry in this.Entries)
                 {
-                    string filename = Path.Combine(this.ManifestDirectory, entry.Filename);
+                    var filename = Path.Combine(this.ManifestDirectory, entry.Filename);
                     if (File.Exists(filename))
                     {
                         newEntries.Add(entry);
@@ -68,11 +68,11 @@ namespace SteamConfirmApp
             var accounts = new List<SteamGuardAccount>();
             foreach (var entry in this.Entries)
             {
-                string fileText = File.ReadAllText(Path.Combine(this.ManifestDirectory, entry.Filename));
+                var fileText = File.ReadAllText(Path.Combine(this.ManifestDirectory, entry.Filename));
                 if (this.Encrypted)
                 {
-                    string decryptedText = FileEncryptor.DecryptData(passkey, entry.Salt, entry.IV, fileText);
-                    if (decryptedText == null) return [];
+                    var decryptedText = FileEncryptor.DecryptData(passkey, entry.Salt, entry.IV, fileText);
+                    if (string.IsNullOrEmpty(decryptedText)) return [];
                     fileText = decryptedText;
                 }
 

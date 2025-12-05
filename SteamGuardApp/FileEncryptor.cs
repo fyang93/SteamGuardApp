@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace SteamConfirmApp
+namespace SteamGuardApp
 {
     /// <summary>
     /// This class provides the controls that will encrypt and decrypt the *.maFile files

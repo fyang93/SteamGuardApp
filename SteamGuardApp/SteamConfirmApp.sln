@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35013.160
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SteamConfirmApp", "SteamConfirmApp.csproj", "{D91B42F4-07AB-4C96-AB41-FB089D169FB0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SteamGuardApp", "SteamGuardApp.csproj", "{D91B42F4-07AB-4C96-AB41-FB089D169FB0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SteamAuth", "..\lib\SteamAuth\SteamAuth\SteamAuth.csproj", "{5AD0934E-F6C4-4AE5-83AF-C788313B2A87}"
 EndProject
