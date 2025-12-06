@@ -3,67 +3,73 @@
 @using SteamAuth
 @using System.ComponentModel
 @using System.Text.Json
+@using SteamGuardApp.Models
 
 @inject ILogger<Home> Logger
 @inject IWebHostEnvironment Environment
 @inject ProtectedLocalStorage ProtectedLocalStore
+@inject IUserAuthService UserAuthService
 
 <PageTitle>Steam确认工具</PageTitle>
 
-<div class="pe-sm-1 pe-md-2">
-    <div class="accordion" id="accordionPanelsStayOpenExample">
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="heading-account">
-                <button class="accordion-button @(_accounts.Any() ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-account" aria-expanded="@(_accounts.Any() ? "true" : "false")" aria-controls="collapse-account">
-                    账号列表
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                        @_accounts.Count
-                    </span>
-                </button>
-            </h2>
-            <div id="collapse-account" class="accordion-collapse collapse @(_accounts.Any() ? "show" : "")" aria-labelledby="heading-account">
-                <div class="accordion-body">
-                    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xxl-6 g-4">
-                        @if (_accounts.Any())
-                        {
-                            @foreach (var account in _accounts)
+@if (_isAuthenticated)
+{
+    <div class="pe-sm-1 pe-md-2">
+        <div class="accordion" id="accordionPanelsStayOpenExample">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading-account">
+                    <button class="accordion-button @(_accounts.Any() ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-account" aria-expanded="@(_accounts.Any() ? "true" : "false")" aria-controls="collapse-account">
+                        账号列表
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                            @_accounts.Count
+                        </span>
+                    </button>
+                </h2>
+                <div id="collapse-account" class="accordion-collapse collapse @(_accounts.Any() ? "show" : "")" aria-labelledby="heading-account">
+                    <div class="accordion-body">
+                        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 row-cols-xl-8 g-3">
+                            @if (_accounts.Any())
                             {
-                                <div class="col">
-                                    <AccountCard Account="@account" Password="@_secrets.GetValueOrDefault(account.AccountName)" Selected="@(account == _currentAccount)" OnClick="@(() => SetCurrentCard(account))" PasswordChanged="OnPasswordChangedAsync" />
-                                </div>
+                                @foreach (var account in _accounts.Where(a => _aliases.ContainsKey(a.AccountName)).OrderBy(a => $"{_aliases[a.AccountName]} - {a.AccountName}"))
+                                {
+                                    <div class="col">
+                                        <AccountCard Account="@account" AccountAlias="@_aliases.GetValueOrDefault(account.AccountName)" Password="@_passwords.GetValueOrDefault(account.AccountName)" Selected="@(account == _currentAccount)" OnClick="@(() => SetCurrentCard(account))" />
+                                    </div>
+                                }
                             }
-                        }
-                        else
-                        {
-                            <span class="text-danger">暂无账号</span>
-                        }
+                            else
+                            {
+                                <span class="text-danger">暂无账号</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading-upload">
+                    <button class="accordion-button @(_accounts.Any() ? "collapsed" : "")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-upload" aria-expanded="@(_accounts.Any() ? "false" : "true")" aria-controls="collapse-upload">
+                        上传文件
+                    </button>
+                </h2>
+                <div id="collapse-upload" class="accordion-collapse collapse @(_accounts.Any() ? "" : "show")" aria-labelledby="heading-upload">
+                    <div class="accordion-body">
+                        <Upload AccpetFileExtension=".maFile,.json" OnUploadComplete="@CheckAuthentication" />
                     </div>
                 </div>
             </div>
         </div>
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="heading-upload">
-                <button class="accordion-button @(_accounts.Any() ? "collapsed" : "")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-upload" aria-expanded="@(_accounts.Any() ? "false" : "true")" aria-controls="collapse-upload">
-                    上传令牌
-                </button>
-            </h2>
-            <div id="collapse-upload" class="accordion-collapse collapse @(_accounts.Any() ? "" : "show")" aria-labelledby="heading-upload">
-                <div class="accordion-body">
-                    <Upload AccpetFileExtension=".maFile,.json" OnUploadComplete="@LoadFiles" />
-                </div>
-            </div>
-        </div>
     </div>
-</div>
-
+}
 
 @code {
     [CascadingParameter]
     public Settings Settings { get; set; }
 
+    private bool _isAuthenticated;
     private Manifest? _manifest;
     private List<SteamGuardAccount> _accounts = new();
-    private Dictionary<string, string> _secrets = new();
+    private Dictionary<string, string> _aliases = new();
+    private Dictionary<string, string> _passwords = new();
     private SteamGuardAccount? _currentAccount;
 
     protected override void OnInitialized()
@@ -78,29 +84,41 @@
 
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
-        switch (e.PropertyName)
+        try
         {
-            case nameof(Settings.Username):
-                LoadAccounts();
-                LoadSecrets();
-                break;
-            case nameof(Settings.Passkey):
-                LoadAccounts();
-                break;
+            CheckAuthentication();
+            InvokeAsync(StateHasChanged); 
+            ProtectedLocalStore.SetAsync("settings", Settings);
         }
-        InvokeAsync(StateHasChanged);
-
-        ProtectedLocalStore.SetAsync("settings", Settings);
+        catch (Exception ex)
+        {
+            // DO NOTHING
+        }
     }
 
-    private void LoadFiles()
+    private void CheckAuthentication()
     {
-        LoadAccounts();
-        LoadSecrets();
+        _isAuthenticated = UserAuthService.ValidateUser(Settings.Username, Settings.Passkey);
+
+        if (_isAuthenticated)
+        {
+            LoadAccounts();
+            LoadSecrets();
+        }
+        else
+        {
+            // 清空数据
+            _accounts = new();
+            _aliases = new();
+            _passwords = new();
+            _currentAccount = null;
+        }
     }
 
     private void LoadAccounts()
     {
+        if (!_isAuthenticated) return;
+
         try
         {
             var manifestDirectory = Path.Combine(Environment.ContentRootPath, Upload.UploadFolder, Settings.Username);
@@ -123,6 +141,8 @@
 
     private void LoadSecrets()
     {
+        if (!_isAuthenticated) return;
+
         try
         {
             var secretsPath = Path.Combine(Environment.ContentRootPath, Upload.UploadFolder, Settings.Username, "secrets.json");
@@ -130,33 +150,26 @@
             var secrets = JsonSerializer.Deserialize<Secrets>(json);
             if (secrets == null) return;
 
-            _secrets = secrets.AccountSecrets
+            _aliases = secrets.AccountSecrets
                 .ToDictionary(
                     x => x.AccountName,
-                    x => x.Password
+                    x => x.AccountAlias ?? ""
+                );
+            _passwords = secrets.AccountSecrets
+                .ToDictionary(
+                    x => x.AccountName,
+                    x => x.Password ?? ""
                 );
         }
         catch (Exception)
         {
-            _secrets = new();
+            _aliases = new();
+            _passwords = new();
         }
     }
 
     private void SetCurrentCard(SteamGuardAccount account)
     {
         _currentAccount = account;
-    }
-
-    private async Task OnPasswordChangedAsync((string accountName, string newPassword) arg)
-    {
-        _secrets[arg.accountName] = arg.newPassword;
-
-        var secretsPath = Path.Combine(Environment.ContentRootPath, Upload.UploadFolder, Settings.Username, "secrets.json");
-        var secrets = new Secrets
-        {
-            AccountSecrets = _secrets.Select(kv => new Secret { AccountName = kv.Key, Password = kv.Value }).ToList()
-        };
-
-        await File.WriteAllTextAsync(secretsPath, JsonSerializer.Serialize(secrets, new JsonSerializerOptions { WriteIndented = true }));
     }
 }

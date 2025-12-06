@@ -44,3 +44,60 @@ function updateTooltipContent(element, newContent) {
         console.error('Error updating tooltip content: ', err);
     }
 }
+function initScrollingText() {
+    const elems = document.querySelectorAll(".scrolling-text");
+
+    elems.forEach(el => {
+        if (el.dataset.init === "1") return;
+        el.dataset.init = "1";
+
+        const parent = el.parentElement;
+        if (!parent) return;
+
+        // 必要样式（不用 CSS 文件）
+        el.style.whiteSpace = "nowrap";
+        el.style.position = "relative";
+        el.style.transform = "translateX(0)";
+        el.style.transition = "none";
+
+        const speed = 3;            // 每秒 3px
+        const pause = 1000;           // 边缘停顿 1 秒
+        const frame = 1000 / 60;     // 60 FPS
+
+        function startScrolling() {
+            const parentWidth = parent.clientWidth;
+            const textWidth = el.scrollWidth;
+
+            if (textWidth <= parentWidth) return;
+
+            const minX = parentWidth - textWidth;
+            const maxX = 0;
+
+            let pos = 0;
+            let dir = -1;
+
+            function animate() {
+                pos += dir * (speed * frame / 1000);
+                el.style.transform = `translateX(${pos}px)`;
+
+                if (pos <= minX) {
+                    dir = 1;
+                    setTimeout(() => requestAnimationFrame(animate), pause);
+                    return;
+                }
+
+                if (pos >= maxX) {
+                    dir = -1;
+                    setTimeout(() => requestAnimationFrame(animate), pause);
+                    return;
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        startScrolling();
+    });
+};

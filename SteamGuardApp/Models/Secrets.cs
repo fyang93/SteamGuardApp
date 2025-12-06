@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace SteamGuardApp;
+namespace SteamGuardApp.Models;
 
 public class Secrets
 {
@@ -13,6 +13,9 @@ public class Secret
     [JsonPropertyName("name")]
     public string AccountName { get; init; }
 
+    [JsonPropertyName("alias")]
+    public string? AccountAlias { get; init; }
+
     [JsonPropertyName("password")]
-    public string Password { get; init; }
+    public string? Password { get; init; }
 }

@@ -1,5 +1,6 @@
 using SteamGuardApp;
 using SteamGuardApp.Components;
+using SteamGuardApp.Models;
 using SteamGuardApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,8 @@ builder.Services.AddRazorComponents()
 builder.Services.AddCascadingValue(sp => new Settings());
 // Steam Guard Timer
 builder.Services.AddTransient(sp => new SteamGuardTimerService(TimeSpan.FromSeconds(1)));
+// User Auth
+builder.Services.AddSingleton<IUserAuthService, UserAuthService>();
 
 var app = builder.Build();
 
