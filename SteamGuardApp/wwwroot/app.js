@@ -44,6 +44,7 @@ function updateTooltipContent(element, newContent) {
         console.error('Error updating tooltip content: ', err);
     }
 }
+
 function initScrollingText() {
     const elems = document.querySelectorAll(".scrolling-text");
 

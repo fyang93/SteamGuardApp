@@ -5,7 +5,7 @@
 @inject ILogger<AccountCard> Logger
 
 <div class="card w-100 shadow-sm @(Selected ? "border-primary border-bold shadow" : "border-bold")"
-@onclick="OnCardClick">
+    @onclick="OnCardClick">
 
     <div class="card-body p-2">
 
@@ -20,13 +20,13 @@
 
             <!-- Token -->
             <div class="bg-light rounded-3 p-2 mb-2 border text-center"
-            @ref="_tokenElemRef"
-            @onclick="OnTokenClick"
-            @ondblclick="OnTokenDoubleClick"
-            @onmouseleave="OnTokenMouseLeave"
-            data-bs-toggle="tooltip"
-            data-bs-title="点击复制"
-            style="cursor:pointer;">
+                @ref="_tokenElemRef"
+                @onclick="() => OnTokenClick(_tokenElemRef)"
+                @ondblclick="() => OnTokenDoubleClick(_tokenElemRef)"
+                @onmouseleave="() => OnTokenMouseLeave(_tokenElemRef)"
+                data-bs-toggle="tooltip"
+                data-bs-title="点击复制"
+                style="cursor:pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
 
                 <h4 class="card-text mb-0 fw-bold font-monospace text-break">
                     @_loginToken
@@ -73,13 +73,13 @@
 
                 <!-- Token -->
                 <div class="bg-light rounded-3 p-2 border flex-fill text-center"
-                    @ref="_tokenElemRef"
-                    @onclick="OnTokenClick"
-                    @ondblclick="OnTokenDoubleClick"
-                    @onmouseleave="OnTokenMouseLeave"
+                    @ref="_tokenMobileElemRef"
+                    @onclick="() => OnTokenClick(_tokenMobileElemRef)"
+                    @ondblclick="() => OnTokenDoubleClick(_tokenMobileElemRef)"
+                    @onmouseleave="() => OnTokenMouseLeave(_tokenMobileElemRef)"
                     data-bs-toggle="tooltip"
                     data-bs-title="点击复制"
-                    style="cursor:pointer;">
+                    style="cursor:pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
 
                     <h5 class="card-text mb-0 fw-bold font-monospace text-break">
                         @_loginToken
@@ -126,6 +126,7 @@
     public EventCallback<(string accountName, string newPassword)> PasswordChanged { get; set; }
 
     private ElementReference _tokenElemRef;
+    private ElementReference _tokenMobileElemRef;
 
     private string _loginToken = "XXXXX";
     private int _currentProgress = 0;
@@ -153,7 +154,7 @@
     #region 点击复制
     private CancellationTokenSource? _clickCts;
 
-    private async Task OnTokenClick()
+    private async Task OnTokenClick(ElementReference elm)
     {
         // 取消上一次待处理的单击
         _clickCts?.Cancel();
@@ -166,7 +167,7 @@
 
             // 真正单击
             await JS.InvokeVoidAsync("copyToClipboard", _loginToken);
-            await JS.InvokeVoidAsync("updateTooltipContent", _tokenElemRef, "已复制");
+            await JS.InvokeVoidAsync("updateTooltipContent", elm, "已复制");
         }
         catch (OperationCanceledException)
         {
@@ -174,14 +175,14 @@
         }
     }
 
-    private async Task OnTokenDoubleClick()
+    private async Task OnTokenDoubleClick(ElementReference elm)
     {
         try
         {
             // 双击立即取消单击计时器
             _clickCts?.Cancel();
             await JS.InvokeVoidAsync("copyToClipboard", $"{Account?.AccountName} {Password} {_loginToken}");
-            await JS.InvokeVoidAsync("updateTooltipContent", _tokenElemRef, "已复制");
+            await JS.InvokeVoidAsync("updateTooltipContent", elm, "已复制");
         }
         catch (Exception ex)
         {
@@ -189,11 +190,11 @@
         }
     }
 
-    private async Task OnTokenMouseLeave()
+    private async Task OnTokenMouseLeave(ElementReference elm)
     {
         try
         {
-            await JS.InvokeVoidAsync("updateTooltipContent", _tokenElemRef, "点击复制");
+            await JS.InvokeVoidAsync("updateTooltipContent", elm, "点击复制");
         }
         catch (Exception ex)
         {
