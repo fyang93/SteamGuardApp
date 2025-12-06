@@ -7,7 +7,7 @@
 <nav class="navbar navbar-light bg-light p-2 px-3 px-sm-4 px-md-4">
     <div class="container-fluid">
         <!-- Hidden on small screens -->
-        <a class="navbar-brand d-none d-md-block">@currentTime</a>
+        <a class="navbar-brand d-none d-md-block">@_currentTime</a>
 
         <!-- Centered on small screens -->
         @* <a class="navbar-brand d-sm-none mx-auto text-center">@currentTime</a> *@
@@ -55,7 +55,8 @@
     #endregion
 
     #region 显示当前时间相关
-    private string currentTime = DateTime.Now.ToString("HH:mm:ss");
+
+    private string _currentTime;
 
     protected override void OnInitialized()
     {
@@ -64,9 +65,11 @@
 
     private async Task UpdateTimeAsync()
     {
-        currentTime = DateTime.Now.ToString("HH:mm:ss");
+        _currentTime = GetBeijingTimeString();
         await InvokeAsync(StateHasChanged);
     }
+
+    private string GetBeijingTimeString() => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("China Standard Time")).ToString("HH:mm:ss");
     #endregion
 
     public void Dispose()
