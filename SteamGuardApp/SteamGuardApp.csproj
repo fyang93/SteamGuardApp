@@ -20,4 +20,10 @@
     <Folder Include="uploads\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="users.yml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
