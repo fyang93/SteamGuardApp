@@ -56,7 +56,7 @@
 
     #region 显示当前时间相关
 
-    private string _currentTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("China Standard Time")).ToString("HH:mm:ss");
+    private string _currentTime = DateTimeOffset.UtcNow.AddHours(8).ToString("HH:mm:ss");
 
     protected override void OnInitialized()
     {
@@ -65,7 +65,7 @@
 
     private async Task UpdateTimeAsync()
     {
-        _currentTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("China Standard Time")).ToString("HH:mm:ss");
+        _currentTime = DateTimeOffset.UtcNow.AddHours(8).ToString("HH:mm:ss");
         await InvokeAsync(StateHasChanged);
     }
 
