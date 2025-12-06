@@ -27,7 +27,7 @@
                 </h2>
                 <div id="collapse-account" class="accordion-collapse collapse @(_accounts.Any() ? "show" : "")" aria-labelledby="heading-account">
                     <div class="accordion-body">
-                        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 row-cols-xl-8 g-3">
+                        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 row-cols-lg-6 row-cols-xl-8 g-3">
                             @if (_accounts.Any())
                             {
                                 @foreach (var account in _accounts.Where(a => _aliases.ContainsKey(a.AccountName)).OrderBy(a => $"{_aliases[a.AccountName]} - {a.AccountName}"))

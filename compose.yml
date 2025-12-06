@@ -6,4 +6,6 @@ services:
       dockerfile: Dockerfile
     container_name: sga
     ports:
-      - "50019:8080"
+      - "50008:8080"
+    volumes:
+      - ./uploads:/app/uploads
